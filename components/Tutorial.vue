@@ -5,63 +5,84 @@
       <option value="links">Главный по ссылкам</option>
     </select>
     <div class="form-container">
-      <form v-if="canManageText">
-        <button @click="saveText($event)" type="submit">
-          {{ textData.btnContent }}
+      <form v-if="canManageText" @submit.prevent="saveText">
+        <button type="submit">
+          {{ editing ? "Сохранить" : "Добавить" }}
         </button>
         <input v-model="inputText" type="text" placeholder="Введите текст" />
       </form>
-      <form v-if="canManageLinks">
-        <button type="submit" @click="saveLink($event)">
-          {{ linksData.btnContent }}
+      <form v-if="canManageLinks" @submit.prevent="saveLink">
+        <button type="submit">
+          {{ editing ? "Сохранить" : "Добавить" }}
         </button>
         <input v-model="inputLink" type="text" placeholder="Вставте ссылку" />
       </form>
     </div>
-    <h3>Тексты и Ссылки</h3>
-    <div class="manageCont">
-      <div>
-        <input
-          v-model="textSearch"
-          type="text"
-          placeholder="Поиск по текстам"
-        />
-        <button @click="sortTexts('asc')">Сортировать текст ↑</button>
-        <button @click="sortTexts('desc')">Сортировать текст ↓</button>
+    <div class="tableCont">
+      <div class="infoCont">
+        <h3>Тексты</h3>
+        <div class="manageCont">
+          <input
+            v-model="textSearch"
+            type="text"
+            placeholder="Поиск по текстам"
+          />
+          <button @click="sortTexts('asc')">Сортировать текст ↑</button>
+          <button @click="sortTexts('desc')">Сортировать текст ↓</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Текст</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(text, index) in filteredTexts"
+              :key="'text-row-' + index"
+            >
+              <td @click="userData.role === 'Text' ? editText(index) : null">
+                {{ text.text }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-
-      <div>
-        <input
-          v-model="linkSearch"
-          type="text"
-          placeholder="Поиск по ссылкам"
-        />
-        <button @click="sortLinks('asc')">Сортировать ссылки ↑</button>
-        <button @click="sortLinks('desc')">Сортировать ссылки ↓</button>
+      <div class="infoCont">
+        <h3>Ссылки</h3>
+        <div class="manageCont">
+          <input
+            v-model="linkSearch"
+            type="text"
+            placeholder="Поиск по ссылкам"
+          />
+          <button @click="sortLinks('asc')">Сортировать ссылки ↑</button>
+          <button @click="sortLinks('desc')">Сортировать ссылки ↓</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Ссылка</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(link, index) in filteredLinks"
+              :key="'link-row-' + index"
+            >
+              <td @click="userData.role === 'links' ? editLink(index) : null">
+                <a :href="link.url">{{ link.url }}</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Текст</th>
-          <th>Ссылка</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(text, index) in filteredTexts" :key="'row-' + index">
-          <td @click="userData.role === 'Text' ? editText(index) : null">
-            {{ text }}
-          </td>
-          <td @click="userData.role === 'links' ? editLink(index) : null">
-            {{ filteredLinks[index] || "" }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
   </div>
 </template>
 
 <script>
+import axios from "axios";
 import ability from "~/plugins/ability";
 import { Text, Links } from "~/plugins/entities";
 export default {
@@ -75,104 +96,160 @@ export default {
       linksData: null,
       editing: false,
       currentEditIndex: null,
+      texts: [],
+      links: [],
       textSearch: "",
       linkSearch: "",
     };
   },
   // задаем значения для рендера
   created() {
-    (this.textData = new Text({
-      // создаем новый объект класса, чтобы разграничивать роли
-      btnContent: "Добавить текст",
-      texts: ["Hello World, I'm Text!"],
-    })),
-      (this.linksData = new Links({
-        btnContent: "Добавить ссылку",
-        links: ["Hello World, I'm Link!"],
-      }));
+    this.fetchTexts();
+    this.fetchLinks();
+    (this.textData = new Text({ texts: [] })),
+      (this.linksData = new Links({ links: [] }));
   },
   methods: {
-    //обычные добавления
+    async fetchTexts() {
+      await axios
+        .get("http://localhost:8080/texts")
+        .then((response) => {
+          this.texts = response.data.map((item) => new Text(item)); // Создаем экземпляры класса Text
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    },
+    async fetchLinks() {
+      await axios
+        .get("http://localhost:8080/links")
+        .then((response) => {
+          this.links = response.data.map((item) => new Links(item)); // Создаем экземпляры класса Links
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    },
     addText() {
       if (this.inputText) {
-        this.textData.texts.push(this.inputText);
-        this.inputText = ""; // Очистка поля ввода
+        const newText = { id: Date.now().toString(), text: this.inputText }; // Generate a unique ID
+        axios
+          .post("http://localhost:8080/texts", newText)
+          .then(() => {
+            this.fetchTexts(); // Refresh the list after adding
+            this.inputText = ""; // Clear the input field
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       }
     },
     addLink() {
-      if (this.inputLink) {
-        this.linksData.links.push(this.inputLink);
-        this.inputLink = ""; // Очистка поля ввода
+      if (this.inputLink && this.isValidUrl(this.inputLink)) {
+        const newLink = { id: Date.now().toString(), url: this.inputLink }; // Generate a unique ID
+        axios
+          .post("http://localhost:8080/links", newLink)
+          .then(() => {
+            this.fetchLinks(); // Refresh the list after adding
+            this.inputLink = ""; // Clear the input field
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      } else {
+        alert("Введите корректный URL.");
       }
     },
-    // связка редактирования и сохранения данных
     editText(index) {
       this.editing = true;
-      this.inputText = this.filteredTexts[index];
-      this.currentEditIndex = this.textData.texts.indexOf(
-        this.filteredTexts[index]
-      );
+      this.inputText = this.texts[index].text;
+      this.currentEditIndex = index;
     },
-    saveText(event) {
-      event.preventDefault();
+    saveText() {
       if (this.currentEditIndex !== null) {
-        this.textData.texts[this.currentEditIndex] = this.inputText;
-        this.inputText = "";
-        this.editing = false;
-        this.currentEditIndex = null;
+        const updatedText = {
+          ...this.texts[this.currentEditIndex],
+          text: this.inputText,
+        };
+        axios
+          .put(`http://localhost:8080/texts/${updatedText.id}`, updatedText)
+          .then(() => {
+            this.fetchTexts(); // Refresh the list after updating
+            this.inputText = ""; // Clear the input field
+            this.editing = false; // Exit editing mode
+            this.currentEditIndex = null; // Reset the index
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       } else {
         this.addText();
       }
     },
     editLink(index) {
-      this.editing = true; // Устанавливаем режим редактирования
-      this.inputLink = this.filteredLinks[index]; // Устанавливаем значение в input
-      this.currentEditIndex = this.linksData.links.indexOf(
-        this.filteredLinks[index]
-      );
+      this.editing = true;
+      this.inputLink = this.links[index].url;
+      this.currentEditIndex = index;
     },
-    saveLink(event) {
-      event.preventDefault();
+    saveLink() {
       if (this.currentEditIndex !== null) {
-        this.linksData.links[this.currentEditIndex] = this.inputLink; // Обновляем значение в массиве
-        this.inputLink = "";
-        this.editing = false; // Сбрасываем режим редактирования
-        this.currentEditIndex = null; // Сбрасываем индекс редактируемого элемента
+        const updatedLink = {
+          ...this.links[this.currentEditIndex],
+          url: this.inputLink,
+        };
+        axios
+          .put(`http://localhost:8080/links/${updatedLink.id}`, updatedLink)
+          .then(() => {
+            this.fetchLinks(); // Refresh the list after updating
+            this.inputLink = ""; // Clear the input field
+            this.editing = false; // Exit editing mode
+            this.currentEditIndex = null; // Reset the index
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       } else {
         this.addLink();
       }
     },
+    isValidUrl(url) {
+      try {
+        new URL(url);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
     sortTexts(order) {
-      this.textData.texts.sort((a, b) => {
-        return order === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+      this.texts.sort((a, b) => {
+        return order === "asc"
+          ? a.text.localeCompare(b.text)
+          : b.text.localeCompare(a.text);
       });
     },
     sortLinks(order) {
-      this.linksData.links.sort((a, b) => {
-        return order === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+      this.links.sort((a, b) => {
+        return order === "asc"
+          ? a.url.localeCompare(b.url)
+          : b.url.localeCompare(a.url);
       });
     },
   },
-  // полуаем нужную роль и ее возможности
   computed: {
     ability() {
       return ability(this.userData);
     },
     canManageText() {
-      return this.ability.can("manage", this.textData);
+      return this.ability.can("manage", this.texts[0]);
     },
     canManageLinks() {
-      return this.ability.can("manage", this.linksData);
+      return this.ability.can("manage", this.links[0]);
     },
     filteredTexts() {
-      return this.textData.texts.filter((text) =>
-        text.includes(this.textSearch)
-      );
+      return this.texts.filter((text) => text.text.includes(this.textSearch));
     },
     filteredLinks() {
-      return this.linksData.links.filter((link, index) => {
-        return link.includes(this.linkSearch);
-      });
+      return this.links.filter((link) => link.url.includes(this.linkSearch));
     },
   },
   // отображение изменений в данных напрямую
@@ -191,6 +268,15 @@ export default {
 };
 </script>
 <style>
+.tableCont {
+  display: flex;
+  width: 100%;
+}
+.infoCont {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+}
 .manageCont {
   display: flex;
   justify-content: space-between;
