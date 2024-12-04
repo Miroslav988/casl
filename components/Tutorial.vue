@@ -89,7 +89,7 @@ export default {
   // начальные значения
   data() {
     return {
-      userData: { role: "Text" }, // Пример данных пользователя
+      userData: { role: "Text" },
       inputText: "",
       inputLink: "",
       textData: null,
@@ -132,12 +132,12 @@ export default {
     },
     addText() {
       if (this.inputText) {
-        const newText = { id: Date.now().toString(), text: this.inputText }; // Generate a unique ID
+        const newText = { id: Date.now().toString(), text: this.inputText };
         axios
           .post("http://localhost:8080/texts", newText)
           .then(() => {
-            this.fetchTexts(); // Refresh the list after adding
-            this.inputText = ""; // Clear the input field
+            this.fetchTexts();
+            this.inputText = "";
           })
           .catch((error) => {
             console.error(error);
@@ -146,12 +146,12 @@ export default {
     },
     addLink() {
       if (this.inputLink && this.isValidUrl(this.inputLink)) {
-        const newLink = { id: Date.now().toString(), url: this.inputLink }; // Generate a unique ID
+        const newLink = { id: Date.now().toString(), url: this.inputLink };
         axios
           .post("http://localhost:8080/links", newLink)
           .then(() => {
-            this.fetchLinks(); // Refresh the list after adding
-            this.inputLink = ""; // Clear the input field
+            this.fetchLinks();
+            this.inputLink = "";
           })
           .catch((error) => {
             console.error(error);
@@ -174,10 +174,10 @@ export default {
         axios
           .put(`http://localhost:8080/texts/${updatedText.id}`, updatedText)
           .then(() => {
-            this.fetchTexts(); // Refresh the list after updating
-            this.inputText = ""; // Clear the input field
-            this.editing = false; // Exit editing mode
-            this.currentEditIndex = null; // Reset the index
+            this.fetchTexts();
+            this.inputText = "";
+            this.editing = false;
+            this.currentEditIndex = null;
           })
           .catch((error) => {
             console.error(error);
@@ -200,10 +200,10 @@ export default {
         axios
           .put(`http://localhost:8080/links/${updatedLink.id}`, updatedLink)
           .then(() => {
-            this.fetchLinks(); // Refresh the list after updating
-            this.inputLink = ""; // Clear the input field
-            this.editing = false; // Exit editing mode
-            this.currentEditIndex = null; // Reset the index
+            this.fetchLinks();
+            this.inputLink = "";
+            this.editing = false;
+            this.currentEditIndex = null;
           })
           .catch((error) => {
             console.error(error);
@@ -282,27 +282,27 @@ export default {
   justify-content: space-between;
 }
 .form-container {
-  display: flex; /* Используем Flexbox */
-  gap: 20px; /* Промежуток между формами */
+  display: flex;
+  gap: 20px;
 }
 
 form {
   display: flex;
-  flex-direction: column; /* Вертикальное расположение элементов внутри формы */
+  flex-direction: column;
 }
 table {
   width: 100%;
-  border-collapse: collapse; /* Убирает двойные границы между ячейками */
+  border-collapse: collapse;
 }
 
 th,
 td {
-  border: 1px solid black; /* Добавляет границы ячейкам */
-  padding: 8px; /* Добавляет отступы внутри ячеек */
-  text-align: left; /* Выравнивание текста в ячейках */
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
 }
 
 th {
-  background-color: #f2f2f2; /* Цвет фона для заголовков */
+  background-color: #f2f2f2;
 }
 </style>
