@@ -193,21 +193,26 @@ export default {
     },
     saveLink() {
       if (this.currentEditIndex !== null) {
-        const updatedLink = {
-          ...this.links[this.currentEditIndex],
-          url: this.inputLink,
-        };
-        axios
-          .put(`http://localhost:8080/links/${updatedLink.id}`, updatedLink)
-          .then(() => {
-            this.fetchLinks();
-            this.inputLink = "";
-            this.editing = false;
-            this.currentEditIndex = null;
-          })
-          .catch((error) => {
-            console.error(error);
-          });
+        // Проверяем валидность URL перед обновлением
+        if (this.isValidUrl(this.inputLink)) {
+          const updatedLink = {
+            ...this.links[this.currentEditIndex],
+            url: this.inputLink,
+          };
+          axios
+            .put(`http://localhost:8080/links/${updatedLink.id}`, updatedLink)
+            .then(() => {
+              this.fetchLinks();
+              this.inputLink = "";
+              this.editing = false;
+              this.currentEditIndex = null;
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        } else {
+          alert("Введите корректный URL."); // Сообщение об ошибке
+        }
       } else {
         this.addLink();
       }
